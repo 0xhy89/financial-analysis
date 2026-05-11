@@ -1,0 +1,16 @@
+pandas>=2.0.0
+numpy>=1.26.0
+akshare>=1.13.0
+yfinance>=0.2.0
+ta>=0.11.0
+
+matplotlib>=3.8.0
+plotly>=5.18.0
+
+Pillow>=10.0.0
+
+schedule>=1.2.0
+
+python-dateutil>=2.8.2
+
+colorama>=0.4.6
