@@ -149,5 +149,41 @@ HK_POLICY_SECTORS = [
 
 BLACKLIST_PATTERNS = ["ST", "*ST", "退市", "S*ST", "SST"]
 
+# 主要指数配置
+INDEX_CONFIG = {
+    # 美股指数
+    "标普500": {
+        "symbol": "SP500",
+        "market": "美股",
+        "source": "yfinance"
+    },
+    "纳斯达克综合指数": {
+        "symbol": "^IXIC",
+        "market": "美股",
+        "source": "yfinance"
+    },
+    # A股指数
+    "沪深300": {
+        "symbol": "000300",
+        "market": "A股",
+        "source": "akshare"
+    },
+    "中证A50": {
+        "symbol": "932816",
+        "market": "A股",
+        "source": "akshare"
+    },
+    "科创板指数": {
+        "symbol": "000688",
+        "market": "A股",
+        "source": "akshare"
+    },
+    "创业板指数": {
+        "symbol": "399006",
+        "market": "A股",
+        "source": "akshare"
+    }
+}
+
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE = LOGS_DIR / "quantitative_system.log"

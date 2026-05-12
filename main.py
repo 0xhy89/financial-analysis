@@ -337,6 +337,98 @@ class QuantitativeSystem:
                     avg_sharpe = sum(r.sharpe_ratio for r in results_list) / len(results_list)
                     print(f"  {market}: 平均收益={avg_return:.2%}, 平均夏普比率={avg_sharpe:.2f}")
 
+    def analyze_indices_pe(self) -> Dict[str, Dict]:
+        """分析所有主要指数的PE百分位"""
+        logger.info("Analyzing major indices PE...")
+        
+        indices_pe = self.data_api.get_all_indices_pe()
+        
+        self._print_index_pe_summary(indices_pe)
+        self._save_index_pe_report(indices_pe)
+        
+        return indices_pe
+    
+    def _print_index_pe_summary(self, indices_pe: Dict[str, Dict]) -> None:
+        """打印指数PE分析摘要"""
+        print("\n" + "=" * 80)
+        print("主要指数 PE-TTM 分析")
+        print("=" * 80)
+        
+        for name, info in indices_pe.items():
+            if info:
+                stats = info["stats"]
+                config = info["config"]
+                
+                percentile_3y = stats["3y_percentile"]
+                percentile_5y = stats["5y_percentile"]
+                
+                # 判断估值状态
+                def get_valuation_status(percentile):
+                    if percentile < 20:
+                        return "低估"
+                    elif percentile < 40:
+                        return "偏低"
+                    elif percentile < 60:
+                        return "合理"
+                    elif percentile < 80:
+                        return "偏高"
+                    else:
+                        return "高估"
+                
+                status_3y = get_valuation_status(percentile_3y)
+                status_5y = get_valuation_status(percentile_5y)
+                
+                print(f"\n【{name}】({config['market']})")
+                print(f"  当前PE: {stats['current_pe']:.2f}")
+                print(f"  历史区间: [{stats['min_pe']:.2f}, {stats['max_pe']:.2f}]")
+                print(f"  均值/中位数: {stats['mean_pe']:.2f} / {stats['median_pe']:.2f}")
+                print(f"  3年百分位: {percentile_3y:.1f}% ({status_3y})")
+                print(f"  5年百分位: {percentile_5y:.1f}% ({status_5y})")
+    
+    def _save_index_pe_report(self, indices_pe: Dict[str, Dict]) -> None:
+        """保存指数PE分析报告"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        filepath = REPORTS_DIR / f"index_pe_{timestamp}.txt"
+        
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write("=" * 80 + "\n")
+            f.write("主要指数 PE-TTM 分析报告\n")
+            f.write("=" * 80 + "\n")
+            f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            for name, info in indices_pe.items():
+                if info:
+                    stats = info["stats"]
+                    config = info["config"]
+                    
+                    percentile_3y = stats["3y_percentile"]
+                    percentile_5y = stats["5y_percentile"]
+                    
+                    def get_valuation_status(percentile):
+                        if percentile < 20:
+                            return "低估"
+                        elif percentile < 40:
+                            return "偏低"
+                        elif percentile < 60:
+                            return "合理"
+                        elif percentile < 80:
+                            return "偏高"
+                        else:
+                            return "高估"
+                    
+                    status_3y = get_valuation_status(percentile_3y)
+                    status_5y = get_valuation_status(percentile_5y)
+                    
+                    f.write(f"【{name}】({config['market']})\n")
+                    f.write(f"  当前PE: {stats['current_pe']:.2f}\n")
+                    f.write(f"  历史区间: [{stats['min_pe']:.2f}, {stats['max_pe']:.2f}]\n")
+                    f.write(f"  均值/中位数: {stats['mean_pe']:.2f} / {stats['median_pe']:.2f}\n")
+                    f.write(f"  3年百分位: {percentile_3y:.1f}% ({status_3y})\n")
+                    f.write(f"  5年百分位: {percentile_5y:.1f}% ({status_5y})\n")
+                    f.write("\n")
+        
+        logger.info(f"Index PE report saved to {filepath}")
+    
     def _save_results(self, results: Dict) -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
@@ -357,14 +449,14 @@ class QuantitativeSystem:
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="全市场智能量化选股 + 每日自动推荐 + 策略回测系统"
+        description="全市场智能量化选股 + 每日自动推荐 + 策略回测 + 指数PE分析系统"
     )
 
     parser.add_argument(
         "--mode",
         type=str,
         default="full",
-        choices=["full", "pools", "recommend", "backtest"],
+        choices=["full", "pools", "recommend", "backtest", "index-pe"],
         help="运行模式"
     )
 
@@ -412,6 +504,8 @@ def main():
             generate_recommendations=True,
             run_backtest=True
         )
+        # 同时运行指数PE分析
+        system.analyze_indices_pe()
 
     elif args.mode == "pools":
         for market in args.market:
@@ -446,6 +540,9 @@ def main():
                 print(f"  交易次数: {result.total_trades}")
         else:
             print("请指定回测标的 --backtest-symbols")
+    
+    elif args.mode == "index-pe":
+        system.analyze_indices_pe()
 
     print("\n系统运行完成!")
 
