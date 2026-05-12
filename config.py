@@ -173,7 +173,7 @@ INDEX_CONFIG = {
         "market": "A股",
         "source": "akshare"
     },
-    "科创板指数": {
+    "科创50": {
         "symbol": "000688",
         "market": "A股",
         "source": "akshare"
