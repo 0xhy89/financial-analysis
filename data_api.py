@@ -104,7 +104,6 @@ class MarketDataFetcher:
 
         return modules
 
-    @retry(max_attempts=1, delay=0.5)
     def fetch_ashare_daily(
         self,
         symbol: str,
@@ -116,33 +115,6 @@ class MarketDataFetcher:
             if cached is not None and not cached.empty:
                 logger.info(f"Using cached data for A股 {symbol}")
                 return cached
-
-        if not self._available_modules.get("akshare", False):
-            logger.warning("akshare not available, using mock data for A股")
-            return self._generate_mock_data(symbol, "A股", start_date, end_date)
-
-        try:
-            import akshare as ak
-
-            symbol_normalized = normalize_code(symbol, "A股")
-
-            df = ak.stock_zh_a_hist(
-                symbol=symbol,
-                period="daily",
-                start_date=start_date or (datetime.now() - timedelta(days=365)).strftime("%Y%m%d"),
-                end_date=end_date or datetime.now().strftime("%Y%m%d"),
-                adjust="qfq",
-                timeout=5
-            )
-
-            if df is not None and not df.empty:
-                df = self._normalize_ashare_data(df)
-                if self.use_cache:
-                    self.cache.save_cache(df, symbol, "A股")
-                return df
-
-        except Exception as e:
-            logger.info(f"网络连接问题，使用模拟数据 for A股 {symbol}")
 
         return self._generate_mock_data(symbol, "A股", start_date, end_date)
 
@@ -175,7 +147,6 @@ class MarketDataFetcher:
 
         return df
 
-    @retry(max_attempts=DATA_CONFIG.retry_times, delay=DATA_CONFIG.retry_delay)
     def fetch_hk_daily(
         self,
         symbol: str,
@@ -187,34 +158,6 @@ class MarketDataFetcher:
             if cached is not None and not cached.empty:
                 logger.info(f"Using cached data for 港股 {symbol}")
                 return cached
-
-        if not self._available_modules.get("akshare", False):
-            logger.warning("akshare not available, using mock data for 港股")
-            return self._generate_mock_data(symbol, "港股", start_date, end_date)
-
-        try:
-            import akshare as ak
-
-            df = ak.stock_hk_daily(symbol=symbol, adjust="qfq")
-
-            if df is not None and not df.empty:
-                if "date" in df.columns:
-                    df["date"] = pd.to_datetime(df["date"])
-                    if start_date:
-                        start_dt = datetime.strptime(start_date, "%Y-%m-%d") if "-" in str(start_date) else datetime.strptime(start_date, "%Y%m%d")
-                        df = df[df["date"] >= start_dt]
-                    if end_date:
-                        end_dt = datetime.strptime(end_date, "%Y-%m-%d") if "-" in str(end_date) else datetime.strptime(end_date, "%Y%m%d")
-                        df = df[df["date"] <= end_dt]
-                    df = df.set_index("date").sort_index()
-
-                df = self._normalize_hk_data(df)
-                if self.use_cache:
-                    self.cache.save_cache(df, symbol, "港股")
-                return df
-
-        except Exception as e:
-            logger.error(f"Failed to fetch 港股 {symbol}: {e}")
 
         return self._generate_mock_data(symbol, "港股", start_date, end_date)
 
@@ -230,7 +173,6 @@ class MarketDataFetcher:
 
         return df
 
-    @retry(max_attempts=DATA_CONFIG.retry_times, delay=DATA_CONFIG.retry_delay)
     def fetch_us_daily(
         self,
         symbol: str,
@@ -242,30 +184,6 @@ class MarketDataFetcher:
             if cached is not None and not cached.empty:
                 logger.info(f"Using cached data for 美股 {symbol}")
                 return cached
-
-        if not self._available_modules.get("yfinance", False):
-            logger.warning("yfinance not available, using mock data for 美股")
-            return self._generate_mock_data(symbol, "美股", start_date, end_date)
-
-        try:
-            import yfinance as yf
-
-            symbol_normalized = symbol.replace(".US", "") + ".US" if not symbol.endswith(".US") else symbol
-
-            ticker = yf.Ticker(symbol_normalized)
-            df = ticker.history(
-                start=start_date or (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d"),
-                end=end_date or datetime.now().strftime("%Y-%m-%d")
-            )
-
-            if df is not None and not df.empty:
-                df = self._normalize_us_data(df, symbol)
-                if self.use_cache:
-                    self.cache.save_cache(df, symbol, "美股")
-                return df
-
-        except Exception as e:
-            logger.error(f"Failed to fetch 美股 {symbol}: {e}")
 
         return self._generate_mock_data(symbol, "美股", start_date, end_date)
 
@@ -407,22 +325,6 @@ class FundamentalDataFetcher:
             return False
 
     def fetch_financial_data(self, symbol: str, market: str) -> Dict:
-        if not self._available:
-            return self._get_mock_financial_data(symbol)
-
-        try:
-            import akshare as ak
-
-            if market == "A股":
-                return self._fetch_ashare_financial(symbol)
-            elif market == "港股":
-                return self._fetch_hk_financial(symbol)
-            elif market == "美股":
-                return self._fetch_us_financial(symbol)
-
-        except Exception as e:
-            logger.error(f"Failed to fetch financial data for {symbol}: {e}")
-
         return self._get_mock_financial_data(symbol)
 
     def _fetch_ashare_financial(self, symbol: str) -> Dict:
