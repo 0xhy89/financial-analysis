@@ -153,12 +153,12 @@ BLACKLIST_PATTERNS = ["ST", "*ST", "退市", "S*ST", "SST"]
 INDEX_CONFIG = {
     # 美股指数
     "标普500": {
-        "symbol": "SP500",
+        "symbol": "^GSPC",
         "market": "美股",
         "source": "yfinance"
     },
-    "纳斯达克综合指数": {
-        "symbol": "^IXIC",
+    "纳斯达克100": {
+        "symbol": "^NDX",
         "market": "美股",
         "source": "yfinance"
     },
@@ -174,13 +174,19 @@ INDEX_CONFIG = {
         "source": "akshare"
     },
     "科创50": {
-        "symbol": "588080",
+        "symbol": "000688",
         "market": "A股",
         "source": "akshare"
     },
     "创业板指数": {
         "symbol": "399006",
         "market": "A股",
+        "source": "akshare"
+    },
+    # 港股指数
+    "恒生科技指数": {
+        "symbol": "HSTECH",
+        "market": "港股",
         "source": "akshare"
     }
 }
